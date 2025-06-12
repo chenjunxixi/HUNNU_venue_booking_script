@@ -1,4 +1,4 @@
-# HUNNUcgyy
+# 湖南师范大学江湾体育馆羽毛球场预约脚本
 一个湖南师范大学江湾体育馆预约脚本，需要一定计算机基础
 流程为：打开网站https://cgyy.hunnu.edu.cn/mobile/pages/my-appointment/my-appointment
 f12后手动模拟一次完整的预约流程
