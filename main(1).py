@@ -6,7 +6,7 @@
 #
 # # 授权凭证 (Authorization Token), 从 cURL 的 -H 'Authorization: JWT ...' 中完整复制
 # # 【非常重要】这个凭证会过期，如果脚本提示认证失败或无法工作，需要重新抓取并替换这里的字符串
-# AUTH_TOKEN = "JWT eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxMDMzMSwidXNlcm5hbWUiOiJfY2hlbmp1bnl1NTJfIiwiZXhwIjoxNzUxNTUzNDM2fQ.TcQbUF6Vzn6k4RPgtNGyRURuTy0Z-Kz7b4YiI9dIFyM"
+# AUTH_TOKEN = "JWT eyJ0eXAiOiJKV1QiLC*************l1NTJfIiwiZXhwIjoxNzUxN**********k4RPgtNGyRURuTy0Z-Kz7b4YiI9dIFyM"
 #
 # # 场地ID (Venue ID), 从 cURL 的 --data-raw 中找到 "venue" 的值
 # # 根据您的截图和cURL，"江湾体育馆羽毛球场 3号场地" 的ID是 12
@@ -114,7 +114,7 @@ import time
 
 # 授权凭证 (Authorization Token)
 # 【非常重要】这个凭证会过期，如果脚本提示认证失败或无法工作，需要重新抓取并替换这里的字符串
-AUTH_TOKEN = "JWT eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxMDMzMSwidXNlcm5hbWUiOiJfY2hlbmp1bnl1NTJfIiwiZXhwIjoxNzUxNTUzNDM2fQ.TcQbUF6Vzn6k4RPgtNGyRURuTy0Z-Kz7b4YiI9dIFyM"
+AUTH_TOKEN = "JWT eyJ0eXAiOiJKV1Qi*******************idXNlcm5hbWUiO***************XhwIjoxNzUxNTUzND*********uTy0Z-Kz7b4YiI9dIFyM"
 
 # 场地ID (Venue ID)
 VENUE_ID = 12
