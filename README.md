@@ -1,8 +1,13 @@
 # 湖南师范大学江湾体育馆羽毛球场预约脚本
+
 一个湖南师范大学江湾体育馆预约脚本，需要一定计算机基础
+
 流程为：打开网站https://cgyy.hunnu.edu.cn/mobile/pages/my-appointment/my-appointment
+
 f12后手动模拟一次完整的预约流程
+
 在控制台中筛选fetch/xhr后找到cdyy/
+
 右键复制为crul格式
 eg.
 "curl ^"https://cgyy.hunnu.edu.cn/api/cdyy/^" ^
@@ -24,9 +29,14 @@ eg.
   --data-raw ^"^{^\^"venue^\^":12,^\^"name^\^":^\^"12:00-13:00^\^",^\^"start_time^\^":^\^"2025-06-14 12:00:00^\^",^\^"end_time^\^":^\^"2025-06-14 13:00:00^\^",^\^"show^\^":true^}^""
   
   选取你复制的curl其中的-H ^"Authorization: JWT eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1*******************************************QbUF6Vzn6k4RPgtNGyRURuTy0Z-Kz7b4YiI9dIFyM^" ^
+  
   替换代码中的AUTH_TOKEN = "JWT eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1Ni****************************************Vzn6k4RPgtNGyRURuTy0Z-Kz7b4YiI9dIFyM"
+  
   选择场地VENUE_ID = 12（三号场，目前已知id为11 12 13有效）
+  
   选择预约的时间TARGET_TIMES = ["19:00-20:00","20:00-21:00","21:00-22:00"]
+  
   （三条时间段在不成功的情况下依次尝试）
+  
   在每天的零点前一两分钟打开运行并等待脚本到点自动运行即可
 
