@@ -75,15 +75,15 @@ ACCOUNTS = [
 # 这里的索引对应上面 ACCOUNTS 列表中的索引 (0, 1, 2...)
 TEAM_CONFIG = [
     {
-        "leader_index": 0,  # 队长 (陈俊羽)
-        "follower_indices": [1],  # 队员 (罗智)
+        "leader_index": 0,  
+        "follower_indices": [1],  
         # 队长在预约时 (07:00) 实际提交的搭档ID
         # 【重要】这必须与队员的学号匹配
         "partner_id_for_booking": ACCOUNTS[1]["login_user"]
     },
     {
-        "leader_index": 2,  # 队伍2 队长 (甘松)
-        "follower_indices": [3],  # 队伍2 队员 (周大云)
+        "leader_index": 2,  
+        "follower_indices": [3],  
         "partner_id_for_booking": ACCOUNTS[3]["login_user"]
     },
     # --- 如果您有多个队伍，在此添加更多配置 ---
@@ -660,5 +660,6 @@ if __name__ == "__main__":
     print(f"(自动组队任务将在此时间前10分钟自动执行)");
     print("请保持此命令行窗口运行，不要关闭。");
     print("=" * 60)
+
 
     run_precise_scheduler(RUN_AT_TIME)
