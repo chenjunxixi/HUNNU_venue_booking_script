@@ -101,38 +101,30 @@ RUN_AT_TIME = "07:00:00"
 # 部署到服务器时，建议设为 False
 RUN_ON_STARTUP = True
 
+# =========================================================
+# --- (2) 自动登录模块 (已修复新版登录流程) ---
+# =========================================================
 
-# =========================================================
-# --- (2) 自动登录模块 (!!! 已修改为 Windows 版) ---
-# =========================================================
+SUCCESSFULLY_UPDATED_ACCOUNTS = []
+
 
 def get_updated_credentials(account):
     """
-    (已修正 v1.0.8-win) 适配 Windows 系统。
-    使用 webdriver-manager 自动管理 chromedriver.exe。
+    模拟登录统一门户，跳转到场馆SSO接口，并智能等待新凭证生成。
+    已适配2026年1月新版登录页面流程。
     """
     MAX_RETRIES = 3
     username = account["username"]
 
-    # (!!!) Windows 版：不再需要硬编码路径
-    # DRIVER_PATH = '/usr/bin/chromedriver'
-    # BROWSER_PATH = '/usr/bin/google-chrome-stable'
-
     for attempt in range(MAX_RETRIES):
         print(f"--- [账号: {username}] 正在尝试登录 (第 {attempt + 1}/{MAX_RETRIES} 次)... ---")
 
-        # (!!!) Windows 版：使用 webdriver-manager 自动查找/下载
         service = Service(ChromeDriverManager().install())
         options = webdriver.ChromeOptions()
-
-        # (!!!) Windows 版：不再需要指定浏览器路径
-        # options.binary_location = BROWSER_PATH
+        # 暂时关闭 headless 模式便于调试，调试完成后可取消注释下一行
         options.add_argument('--headless')
         options.add_argument('--disable-gpu')
         options.add_argument("--window-size=1920,1080")
-        # (!!!) Windows 版：不再需要 Linux 专用参数
-        # options.add_argument('--no-sandbox')
-        # options.add_argument('--disable-dev-shm-usage')
         options.add_argument(
             'user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36')
 
@@ -141,39 +133,88 @@ def get_updated_credentials(account):
 
         try:
             driver = webdriver.Chrome(service=service, options=options)
+            wait = WebDriverWait(driver, 30)
 
-            # --- (后续登录逻辑 100% 相同) ---
-
+            # 步骤 1: 登录统一门户 (新版登录流程)
             driver.get("https://front.hunnu.edu.cn/index")
-            wait = WebDriverWait(driver, 20)
-            user_input = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="input-v-4"]')))
-            pass_input = driver.find_element(By.XPATH, '//*[@id="input-v-6"]')
-            user_input.send_keys(account["login_user"])
-            pass_input.send_keys(account["login_pass"])
+            print(f"[{username}] 等待登录页面加载...")
 
-            # (已修复的 XPath)
-            login_button = driver.find_element(By.XPATH,
-                                               '//*[@id="app"]/div/div/div/div/div/div/div/div[2]/div[1]/div[5]/div/button')
-            login_button.click()
+            # 等待页面完全加载
+            time.sleep(3)
 
-            print(f"[{username}] 正在等待门户页面加载...")
-            wait.until(EC.presence_of_element_located(
-                (By.XPATH, "//*[contains(text(), '常用应用')]")
+            # 点击"密码"选项卡
+            try:
+                password_tab = wait.until(EC.element_to_be_clickable(
+                    (By.XPATH, '//button[.//span[contains(text(), "密码")]]')
+                ))
+                password_tab.click()
+                print(f"[{username}] 已选择密码登录方式")
+            except Exception:
+                print(f"[{username}] 尝试备用XPath选择密码选项卡...")
+                password_tab = wait.until(EC.element_to_be_clickable(
+                    (By.XPATH, '//*[@id="app"]/div/div/div/div/div[1]/div[2]/div[2]/div[2]/div/div/div/button[3]')
+                ))
+                password_tab.click()
+                print(f"[{username}] 使用备用XPath成功选择密码登录方式")
+
+            time.sleep(1)
+
+            # 使用 placeholder 属性查找输入框（更稳定）
+            print(f"[{username}] 正在输入账号密码...")
+            user_input = wait.until(EC.presence_of_element_located(
+                (By.CSS_SELECTOR, 'input[placeholder*="用户名"], input[placeholder*="学工号"]')
             ))
-            print(f"[{username}] 门户登录成功，页面已加载。正在跳转至场馆系统...")
+            pass_input = driver.find_element(By.CSS_SELECTOR, 'input[placeholder="密码"]')
 
+            user_input.clear()
+            user_input.send_keys(account["login_user"])
+            pass_input.clear()
+            pass_input.send_keys(account["login_pass"])
+            print(f"[{username}] 已输入账号密码，正在点击登录...")
+
+            # 查找并点击登录按钮
+            try:
+                login_button = wait.until(EC.element_to_be_clickable(
+                    (By.CSS_SELECTOR, 'button.bg-red-darken-3')
+                ))
+            except Exception:
+                try:
+                    login_button = wait.until(EC.element_to_be_clickable(
+                        (By.XPATH,
+                         '//*[@id="app"]/div/div/div/div/div[1]/div[2]/div[2]/div[3]/div/div/div[3]/div/div/div[5]/button')
+                    ))
+                except Exception:
+                    login_button = wait.until(EC.element_to_be_clickable(
+                        (By.XPATH, '//button[contains(@class, "v-btn") and .//span[contains(text(), "登录")]]')
+                    ))
+
+            # 使用 JavaScript 点击确保按钮被点击
+            driver.execute_script("arguments[0].click();", login_button)
+            print(f"[{username}] 已点击登录按钮")
+
+            # 等待登录成功
+            print(f"[{username}] 等待登录成功...")
+            time.sleep(3)
+            wait.until(lambda d: "login" not in d.current_url.lower() or "index" in d.current_url.lower())
+            print(f"[{username}] 登录成功，当前URL: {driver.current_url}")
+
+            # 跳转到场馆系统获取凭证
             driver.get("https://venue.hunnu.edu.cn/spa-v/")
+            time.sleep(2)
             driver.get("https://venue.hunnu.edu.cn/rem/static/sso/login")
             wait.until(EC.url_contains("main/home"))
             print(f"[{username}] 已成功跳转到场馆预约系统。")
+
             try:
-                got_it_button = wait.until(EC.element_to_be_clickable(
+                short_wait = WebDriverWait(driver, 5)
+                got_it_button = short_wait.until(EC.element_to_be_clickable(
                     (By.XPATH, '//*[@id="app"]/div/div[2]/div[3]/div/div[2]/div[2]')
                 ))
                 got_it_button.click()
             except Exception:
                 pass  # 忽略弹窗
 
+            # 提取最终凭证
             print(f"[{username}] 正在提取最终凭证...")
             auth_token = driver.execute_script("return sessionStorage.getItem('spa-p-token');")
             driver.get("https://venue.hunnu.edu.cn/venue/")
