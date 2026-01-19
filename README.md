@@ -1,128 +1,136 @@
-# 湖南师范大学江湾体育馆羽毛球场预约脚本
+# HUNNU 场馆自动预约脚本
 
-## 📖 项目简介
+湖南师范大学体育场馆自动预约脚本，支持多账号、自动组队、定时抢票和预约结果通知。
 
-本项目是针对湖南师范大学体育场馆预约系统（新版）的自动化预约脚本。
+## 功能特性
 
-相比于需要手动组队的旧版，**新版脚本** 实现了**全流程自动化**：
+- **自动登录** - 自动完成统一门户登录和场馆系统认证
+- **自动组队** - 自动创建队伍并邀请队员加入
+- **定时预约** - 每天准时自动执行预约任务
+- **结果通知** - 支持邮件/Server酱推送预约结果
+- **跨平台** - 提供 Windows 和 Linux 两个版本
 
-* **自动登录**：使用 Selenium 模拟登录，支持失败自动重试。
-* **自动组队**：脚本会自动创建队伍、获取邀请码，并控制队员账号自动加入。
-* **自动预约**：在指定时间（默认为早上 `07:00:00`）并发执行"盲抢"预约。
-* **无人值守**：支持 Linux 服务器 `systemd` 部署，实现开机自启、崩溃重启和 7x24 小时运行。
+## 文件说明
 
----
+| 文件 | 说明 |
+|------|------|
+| `auto_booking_win_v0.1.py` | Windows 版本脚本 |
+| `auto_booking_linux_v0.1.py` | Linux 服务器版本脚本 |
+| `config.json` | 配置文件 (需自行创建) |
+| `config.example.json` | 配置文件模板 |
 
-## 📦 脚本版本说明
+## 快速开始
 
-| 版本 | 文件名 | 适用环境 | 说明 |
-| :--- | :--- | :--- | :--- |
-| **Windows 版** | `auto_booking_win_v0.1.py` | Windows 10/11 | 适合个人电脑，使用 `webdriver-manager` 自动管理驱动。 |
-| **Linux 版** | `auto_booking_new_v0.1.py` | Linux (推荐 Alinux 3 / Ubuntu) | 适合云服务器，针对无头环境优化，需手动配置驱动路径。 |
+### 1. 环境准备
 
----
-
-## 🛠️ 环境准备与部署指南
-
-### 🖥️ 方案一：Windows 本地运行 (简单)
-
-适合在个人电脑上临时运行或测试。
-
-1. **安装 Python 3.10+：** 从 [python.org](https://www.python.org/) 下载并安装。
-2. **安装 Chrome 浏览器：** 确保已安装最新版 Google Chrome。
-3. **安装依赖库：**
-   ```bash
-   pip install requests selenium webdriver-manager
-   ```
-4. **配置与运行：**
-   * 修改 `auto_booking_win_v0.1.py` 中的 `ACCOUNTS` 和 `TEAM_CONFIG`。
-   * 双击运行或在命令行执行：`python auto_booking_win_v0.1.py`
-
----
-
-### ☁️ 方案二：Linux 云服务器部署 (推荐 - 7x24小时)
-
-**推荐系统：** Alibaba Cloud Linux 3 (Alinux 3) 或 Ubuntu 22.04 LTS。
-
-**核心优势：** 成本低、稳定性高、支持 `systemd` 守护进程。
-
-以下以 **Alibaba Cloud Linux 3** 为例：
-
-#### 1. 环境安装
+#### Windows
 
 ```bash
-# 1. 更新系统并安装编译工具 (用于 Python 3.10)
-sudo dnf update -y
-sudo dnf groupinstall -y "Development Tools"
-sudo dnf install -y zlib-devel openssl-devel bzip2-devel libffi-devel sqlite-devel readline-devel ncurses-devel xz-devel tk-devel gdbm-devel libpcap-devel libuuid-devel unzip
-
-# 2. 编译安装 Python 3.10 (Alinux 3 默认 Python 版本较老)
-cd /usr/src
-wget https://www.python.org/ftp/python/3.10.13/Python-3.10.13.tgz
-tar -xzf Python-3.10.13.tgz
-cd Python-3.10.13
-./configure --enable-optimizations --with-ensurepip
-make -j $(nproc)
-sudo make altinstall
-
-# 3. 安装 Google Chrome (官方版)
-sudo dnf install -y https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
+# 安装 Python 依赖
+pip install selenium requests webdriver-manager
 ```
 
-#### 2. 安装 Chromedriver
-
-**注意：** 必须安装与 Chrome 版本匹配的驱动。
-
-**查看 Chrome 版本：**
+#### Linux (CentOS/Alinux)
 
 ```bash
+# 安装 Google Chrome
+wget https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
+sudo yum install -y ./google-chrome-stable_current_x86_64.rpm
+
+# 安装 ChromeDriver
+# 先查看 Chrome 版本
 google-chrome-stable --version
-# 例如：Google Chrome 142.0.7444.162
-```
+# 下载对应版本的 ChromeDriver 并放到 /usr/bin/chromedriver
 
-**下载匹配驱动：**
-
-由于国内网络问题，建议在本地电脑下载，然后通过 SFTP (FileZilla/SecureFX) 上传到服务器 `/root` 目录。
-
-**下载地址：** 访问淘宝 NPM 镜像，找到对应版本（如 142.0.7444.162 或最接近的版本）下载 `chromedriver_linux64.zip`。
-
-**安装驱动：**
-
-```bash
-cd /root
-unzip chromedriver_linux64.zip
-sudo mv chromedriver-linux64/chromedriver /usr/bin/chromedriver
-sudo chmod +x /usr/bin/chromedriver
-```
-
-#### 3. 部署脚本与虚拟环境
-
-假设脚本上传至 `/root/booking/auto_booking_linux_v0.1.py`。
-
-```bash
-mkdir -p /root/booking
-cd /root/booking
-# (在此处上传您的 Python 脚本)
-
-# 创建并激活虚拟环境
-python3.10 -m venv .venv
+# 创建虚拟环境
+python3 -m venv .venv
 source .venv/bin/activate
 
 # 安装依赖
-pip install requests selenium
+pip install selenium requests
 ```
 
-#### 4. 配置 systemd 服务 (实现全自动)
+### 2. 创建配置文件
 
-创建服务文件，让脚本开机自启并自动重启。
-
-**创建文件：** 
+复制 `config.example.json` 为 `config.json`，然后填写账号信息：
 
 ```bash
-sudo nano /etc/systemd/system/booking.service
+cp config.example.json config.json
 ```
 
-**粘贴内容：**
+### 3. 配置文件说明
+
+```json
+{
+    "accounts": [
+        {
+            "username": "姓名",           // 用于日志显示
+            "login_user": "学号",          // 统一门户学号
+            "login_pass": "密码",          // 统一门户密码
+            "target_room_id": 3,          // 目标场地 (1-6)
+            "target_times": [             // 偏好时间段 (按优先级排序)
+                "16:00-17:00",
+                "16:30-17:30"
+            ]
+        }
+    ],
+    "teams": [
+        {
+            "leader_index": 0,            // 队长在 accounts 数组中的索引
+            "follower_indices": [1]       // 队员索引数组
+        }
+    ],
+    "settings": {
+        "book_days_ahead": 6,             // 提前几天预约 (系统规定为6天)
+        "run_at_time": "07:00:00",        // 每天执行预约的时间
+        "run_on_startup": true            // 启动时是否立即执行一次
+    },
+    "notification": {
+        "smtp": {
+            "enabled": true,
+            "server": "smtp.qq.com",
+            "port": 465,
+            "use_ssl": true,
+            "sender_email": "发送邮箱",
+            "sender_password": "SMTP授权码",
+            "receiver_emails": ["接收邮箱"]
+        },
+        "serverchan": {
+            "enabled": false,
+            "send_key": "Server酱SendKey"
+        }
+    }
+}
+```
+
+### 4. 场地 ID 对照表
+
+| 场地 | 简写 | 完整 ID |
+|------|------|---------|
+| 1号场 | `1` | `1971114235883913216` |
+| 2号场 | `2` | `1971114398220255232` |
+| 3号场 | `3` | `1971114735505211392` |
+| 4号场 | `4` | `1971115407462072320` |
+| 5号场 | `5` | `1971115552459161600` |
+| 6号场 | `6` | `1971115609979846656` |
+
+## 运行方式
+
+### Windows 本地运行
+
+```bash
+python auto_booking_win_v0.1.py
+```
+
+### Linux Systemd 服务
+
+1. 创建服务文件：
+
+```bash
+sudo vim /etc/systemd/system/booking.service
+```
+
+2. 写入以下内容：
 
 ```ini
 [Unit]
@@ -130,123 +138,90 @@ Description=HUNNU Auto Booking Service
 After=network.target
 
 [Service]
+Type=simple
 User=root
 WorkingDirectory=/root/booking
-
-# 强制 Python 立即输出日志，不要缓冲
-Environment=PYTHONUNBUFFERED=1
-
-# 使用绝对路径指向虚拟环境中的 Python 和脚本
 ExecStart=/root/booking/.venv/bin/python /root/booking/auto_booking_linux_v0.1.py
-
-# 崩溃自动重启
 Restart=always
-RestartSec=10
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-**启动服务：**
+3. 启动服务：
 
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl enable booking.service
 sudo systemctl start booking.service
-```
 
----
+# 查看状态
+sudo systemctl status booking.service
 
-## ⚙️ 脚本配置说明
-
-在 `auto_booking_linux_v0.1.py` (Linux) 或 `auto_booking_win_v0.1.py` (Windows) 文件顶部修改配置。
-
-### 1. 账号列表 (ACCOUNTS)
-
-```python
-ACCOUNTS = [
-    {
-        "username": "队长张三",
-        "login_user": "202330...", 
-        "login_pass": "...",
-        "target_room_id": "1971114735505211392", # 场地ID
-        "target_times": ["18:00-19:00", "19:00-20:00"], # 偏好时间
-        "auth_token": "", 
-        "cookie": "",
-    },
-    {
-        "username": "队员李四",
-        "login_user": "202330...", 
-        "login_pass": "...",
-        # 队员只需填写登录信息
-        "target_room_id": "", 
-        "target_times": [], 
-        "auth_token": "", 
-        "cookie": "",
-    },
-]
-```
-
-### 2. 组队关系 (TEAM_CONFIG)
-
-这是全自动组队的关键。您需要通过索引（在 `ACCOUNTS` 列表中的位置，从 0 开始）来指定谁是队长，谁是队员。
-
-```python
-TEAM_CONFIG = [
-    {
-        "leader_index": 0,  # 队长是 ACCOUNTS[0] (张三)
-        "follower_indices": [1],  # 队员是 ACCOUNTS[1] (李四)
-        
-        # 队长在预约时填写的搭档学号 (必须与李四的学号一致)
-        "partner_id_for_booking": ACCOUNTS[1]["login_user"] 
-    },
-    # 支持多支队伍同时配置...
-]
-```
-
-### 3. 调度配置
-
-```python
-BOOK_DAYS_AHEAD = 6      # 提前几天 (系统提示为场馆可以提前7天预约，但实际由于19:00至第二天早上07：00不可操作，所以默认为提前6天)
-RUN_AT_TIME = "07:00:00" # 抢票时间
-RUN_ON_STARTUP = False   # 部署时建议设为 False，避免重启时误操作
-```
-
----
-
-## 📝 常用维护命令 (Linux)
-
-**查看实时日志 (核心命令)：**
-
-```bash
+# 查看日志
 journalctl -u booking.service -f
 ```
-(按 Ctrl+C 退出查看)
 
-**查看服务状态：**
+## 通知配置
 
-```bash
-sudo systemctl status booking.service
+### QQ 邮箱 SMTP
+
+1. 登录 [QQ邮箱](https://mail.qq.com)
+2. 设置 - 账户 - POP3/SMTP服务 - 开启
+3. 生成授权码，填入 `sender_password`
+
+### Server酱
+
+1. 访问 [Server酱官网](https://sct.ftqq.com)
+2. 微信扫码登录获取 SendKey
+3. 填入配置文件
+
+## 工作流程
+
+```
+启动脚本
+    |
+[06:30] 自动组队
+    |-- 更新所有账号凭证
+    |-- 队长创建队伍
+    +-- 队员自动加入
+    |
+[07:00] 自动预约
+    |-- 并发执行预约请求
+    +-- 发送结果通知
+    |
+等待下一天...
 ```
 
-**重启服务 (修改配置后)：**
+## 注意事项
 
+1. **时间段格式**：必须使用 `HH:MM-HH:MM` 格式，如 `16:00-17:00`
+2. **队员配置**：队员的 `target_room_id` 和 `target_times` 可留空
+3. **密码安全**：`config.json` 包含敏感信息，请勿上传到公开仓库
+4. **组队时间**：脚本会在预约时间前 30 分钟自动执行组队
+
+## 常见问题
+
+### Q: 提示 "ModuleNotFoundError: No module named 'xxx'"
+A: 安装缺失的依赖包：
 ```bash
-sudo systemctl restart booking.service
+pip install selenium requests webdriver-manager
 ```
 
-**停止服务：**
+### Q: Linux 版本提示找不到 ChromeDriver
+A: 确保 ChromeDriver 在 `/usr/bin/chromedriver`，且版本与 Chrome 匹配。
 
-```bash
-sudo systemctl stop booking.service
-```
+### Q: 预约失败提示 "未发现近期组队"
+A: 组队未成功，检查账号凭证是否有效，或手动在系统中完成组队。
 
----
+### Q: 登录失败
+A: 可能是学校门户系统更新了页面结构，需要更新脚本中的 XPath 选择器。
 
-## 📄 许可证
+## License
 
-本项目仅供学习交流使用，请勿用于商业用途。
+MIT License
 
-## ⚠️ 免责声明
+## 贡献
 
-本脚本仅用于技术学习和研究目的。使用者应遵守学校相关规定，不得用于任何违规用途。使用本脚本所产生的一切后果由使用者自行承担。
+欢迎提交 Issue 和 Pull Request！
