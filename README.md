@@ -7,6 +7,8 @@
 - **自动登录** - 自动完成统一门户登录和场馆系统认证
 - **自动组队** - 自动创建队伍并邀请队员加入
 - **定时预约** - 每天准时自动执行预约任务
+- **毫秒级精准** - 服务器时间同步 + 网络延迟自动测量
+- **双重保险** - 提前触发 + 准点兜底双线程机制
 - **结果通知** - 支持邮件/Server酱推送预约结果
 - **跨平台** - 提供 Windows 和 Linux 两个版本
 
@@ -18,6 +20,7 @@
 | `auto_booking_linux_v0.1.py` | Linux 服务器版本脚本 |
 | `config.json` | 配置文件 (需自行创建) |
 | `config.example.json` | 配置文件模板 |
+| `logs/` | 日志文件目录 (自动创建) |
 
 ## 快速开始
 
@@ -64,11 +67,11 @@ cp config.example.json config.json
 {
     "accounts": [
         {
-            "username": "姓名",           // 用于日志显示
-            "login_user": "学号",          // 统一门户学号
-            "login_pass": "密码",          // 统一门户密码
-            "target_room_id": 3,          // 目标场地 (1-6)
-            "target_times": [             // 偏好时间段 (按优先级排序)
+            "username": "姓名",
+            "login_user": "学号",
+            "login_pass": "密码",
+            "target_room_id": 3,
+            "target_times": [
                 "16:00-17:00",
                 "16:30-17:30"
             ]
@@ -76,14 +79,15 @@ cp config.example.json config.json
     ],
     "teams": [
         {
-            "leader_index": 0,            // 队长在 accounts 数组中的索引
-            "follower_indices": [1]       // 队员索引数组
+            "leader_index": 0,
+            "follower_indices": [1]
         }
     ],
     "settings": {
-        "book_days_ahead": 6,             // 提前几天预约 (系统规定为6天)
-        "run_at_time": "07:00:00",        // 每天执行预约的时间
-        "run_on_startup": true            // 启动时是否立即执行一次
+        "book_days_ahead": 6,
+        "run_at_time": "07:00:00",
+        "run_on_startup": true,
+        "extra_early_ms": 0
     },
     "notification": {
         "smtp": {
@@ -102,6 +106,25 @@ cp config.example.json config.json
     }
 }
 ```
+
+### 配置字段说明
+
+| 字段 | 说明 |
+|------|------|
+| `accounts` | 账号列表 |
+| `username` | 用于日志显示的姓名 |
+| `login_user` | 统一门户学号 |
+| `login_pass` | 统一门户密码 |
+| `target_room_id` | 目标场地 (1-6 或完整ID) |
+| `target_times` | 偏好时间段列表 (按优先级排序) |
+| `teams` | 队伍配置 |
+| `leader_index` | 队长在 accounts 中的索引 |
+| `follower_indices` | 队员索引数组 |
+| `settings` | 运行设置 |
+| `book_days_ahead` | 提前几天预约 (系统规定为6天) |
+| `run_at_time` | 每天执行预约的时间 |
+| `run_on_startup` | 启动时是否立即执行一次 |
+| `extra_early_ms` | 额外提前量 (毫秒)，一般设为 0 |
 
 ### 4. 场地 ID 对照表
 
@@ -182,41 +205,94 @@ journalctl -u booking.service -f
 ```
 启动脚本
     |
+    +-- 加载配置并校验
+    +-- 初始化日志系统
+    |
 [06:30] 自动组队
-    |-- 更新所有账号凭证
-    |-- 队长创建队伍
+    +-- 更新所有账号凭证 (并行登录)
+    +-- 队长创建队伍
     +-- 队员自动加入
     |
-[07:00] 自动预约
-    |-- 并发执行预约请求
+[06:59:45] 抢票准备
+    +-- 同步服务器时间
+    +-- 测量网络延迟 (RTT)
+    |
+[07:00:00] 自动预约 (双线程)
+    +-- 线程1: 提前触发 (补偿网络延迟)
+    +-- 线程2: 准点兜底
+    +-- 并发执行预约请求
     +-- 发送结果通知
     |
 等待下一天...
 ```
 
+## 日志系统
+
+脚本会自动在 `logs/` 目录下生成日志文件：
+
+| 日志 | 说明 |
+|------|------|
+| `auto_booking.log` | 详细日志 (DEBUG级别) |
+| 控制台输出 | 简要日志 (INFO级别) |
+
+日志文件支持自动轮转，单文件最大 5MB，保留 5 个备份。
+
+## 精准抢票机制
+
+脚本采用以下技术确保毫秒级精准：
+
+1. **服务器时间同步** - 多次采样计算本地与服务器的时间偏移
+2. **网络延迟测量** - 自动测量 RTT 并计算单程延迟
+3. **高精度等待** - 最后 100ms 使用忙等待确保精度
+4. **双重保险** - 提前触发和准点触发并行执行
+
+示例日志：
+```
+[INFO] 时间偏移量: -1.774 秒 (本地时间较慢)
+[INFO] 网络延迟: 230.6ms (RTT中位数: 461.2ms), 总提前量: 230.6ms
+[INFO] 进入高精度等待模式 (双线程)...
+[INFO] [提前触发] 触发抢票! 偏差: -229.8ms
+[DEBUG] [准点兜底] 已由提前触发执行，跳过
+```
+
 ## 注意事项
 
-1. **时间段格式**：必须使用 `HH:MM-HH:MM` 格式，如 `16:00-17:00`
-2. **队员配置**：队员的 `target_room_id` 和 `target_times` 可留空
-3. **密码安全**：`config.json` 包含敏感信息，请勿上传到公开仓库
-4. **组队时间**：脚本会在预约时间前 30 分钟自动执行组队
+1. **时间段格式** - 必须使用 `HH:MM-HH:MM` 格式，如 `16:00-17:00`
+2. **队员配置** - 队员的 `target_room_id` 和 `target_times` 可留空
+3. **密码安全** - `config.json` 包含敏感信息，请勿上传到公开仓库
+4. **组队时间** - 脚本会在预约时间前 30 分钟自动执行组队
+5. **配置校验** - 脚本启动时会自动校验配置文件格式
 
 ## 常见问题
 
 ### Q: 提示 "ModuleNotFoundError: No module named 'xxx'"
-A: 安装缺失的依赖包：
+
+安装缺失的依赖包：
+
 ```bash
 pip install selenium requests webdriver-manager
 ```
 
 ### Q: Linux 版本提示找不到 ChromeDriver
-A: 确保 ChromeDriver 在 `/usr/bin/chromedriver`，且版本与 Chrome 匹配。
+
+确保 ChromeDriver 在 `/usr/bin/chromedriver`，且版本与 Chrome 匹配。
 
 ### Q: 预约失败提示 "未发现近期组队"
-A: 组队未成功，检查账号凭证是否有效，或手动在系统中完成组队。
+
+组队未成功，检查账号凭证是否有效，或手动在系统中完成组队。
 
 ### Q: 登录失败
-A: 可能是学校门户系统更新了页面结构，需要更新脚本中的 XPath 选择器。
+
+可能是学校门户系统更新了页面结构，需要更新脚本中的 XPath 选择器。
+
+### Q: 配置文件校验失败
+
+检查日志输出的错误信息，按提示修正 `config.json` 中的格式问题。
+
+## 版本历史
+
+- v0.1 - 初始版本，支持基础预约功能
+- v0.1.1 - 新增日志系统、配置校验、毫秒级精准抢票、自动网络延迟测量、双重保险机制
 
 ## License
 
@@ -224,4 +300,4 @@ MIT License
 
 ## 贡献
 
-欢迎提交 Issue 和 Pull Request！
+欢迎提交 Issue 和 Pull Request!
