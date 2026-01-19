@@ -52,7 +52,8 @@
     "settings": {
         "book_days_ahead": 6,
         "run_at_time": "07:00:00",
-        "run_on_startup": true
+        "run_on_startup": true,
+        "extra_early_ms": 0
     },
     "notification": {
         "smtp": {

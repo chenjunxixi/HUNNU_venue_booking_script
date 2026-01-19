@@ -22,6 +22,7 @@ __pycache__/
 *_error_attempt_*.png
 
 # 日志文件
+logs/
 *.log
 
 # 系统文件
