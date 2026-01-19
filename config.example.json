@@ -1,0 +1,74 @@
+{
+    "accounts": [
+        {
+            "username": "队长姓名",
+            "login_user": "学号",
+            "login_pass": "密码",
+            "target_room_id": 3,
+            "target_times": [
+                "16:00-17:00",
+                "16:30-17:30"
+            ]
+        },
+        {
+            "username": "队员姓名",
+            "login_user": "学号",
+            "login_pass": "密码",
+            "target_room_id": "",
+            "target_times": []
+        },
+        {
+            "username": "队长姓名",
+            "login_user": "学号",
+            "login_pass": "密码",
+            "target_room_id": 3,
+            "target_times": [
+                "16:00-17:00",
+                "16:30-17:30"
+            ]
+        },
+        {
+            "username": "队员姓名",
+            "login_user": "学号",
+            "login_pass": "密码",
+            "target_room_id": "",
+            "target_times": []
+        }
+    ],
+    "teams": [
+        {
+            "leader_index": 0,
+            "follower_indices": [
+                1
+            ]
+        },
+        {
+            "leader_index": 2,
+            "follower_indices": [
+                3
+            ]
+        }
+    ],
+    "settings": {
+        "book_days_ahead": 6,
+        "run_at_time": "07:00:00",
+        "run_on_startup": true
+    },
+    "notification": {
+        "smtp": {
+            "enabled": false,
+            "server": "smtp.qq.com",
+            "port": 465,
+            "use_ssl": true,
+            "sender_email": "your_email@qq.com",
+            "sender_password": "your_smtp_password",
+            "receiver_emails": [
+                "receiver@example.com"
+            ]
+        },
+        "serverchan": {
+            "enabled": false,
+            "send_key": "your_sendkey_here"
+        }
+    }
+}
